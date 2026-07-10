@@ -21,6 +21,5 @@ dbt_hr:
       role: "{{ env_var('SNOWFLAKE_ROLE') }}"
       warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE') }}"
       database: "{{ env_var('SNOWFLAKE_PROD_DB') }}"
-      schema: "{{ env_var('SNOWFLAKE_PROD_DB') }}"
+      schema: "{{ env_var('SNOWFLAKE_PROD_SCHEMA') }}"
       threads: 1 
-      
