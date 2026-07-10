@@ -4,6 +4,8 @@ DBT/logs
 
 DBT/dbt_hr/logs 
 
+logs 
+
 added_package/__pycache__ 
 
 .venv 
