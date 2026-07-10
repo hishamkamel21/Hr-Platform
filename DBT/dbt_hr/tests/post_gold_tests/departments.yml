@@ -1,0 +1,13 @@
+version: 2 
+
+models: 
+  - name: dim_departments 
+
+    columns: 
+
+      - name: manager_id 
+        tests: 
+          - relationships: 
+              to: ref('dim_employees')
+              field: employee_id 
+      

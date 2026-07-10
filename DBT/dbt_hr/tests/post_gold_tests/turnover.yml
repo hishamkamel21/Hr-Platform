@@ -1,0 +1,12 @@
+version: 2 
+
+models: 
+  - name: fact_turnover 
+
+    columns: 
+    
+      - name: employee_id 
+        tests: 
+          - relationships: 
+              to: ref('dim_employees')
+              field: employee_id 

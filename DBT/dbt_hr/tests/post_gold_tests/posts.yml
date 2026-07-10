@@ -1,0 +1,18 @@
+version: 2 
+
+models:
+  - name: dim_posts 
+
+    columns: 
+
+      - name: job_id 
+        tests: 
+          - relationships: 
+              to: ref('dim_jobs')
+              field: job_id
+      
+      - name: posted_by 
+        tests:
+          - relationships: 
+              to: ref('dim_employees')
+              field: employee_id
