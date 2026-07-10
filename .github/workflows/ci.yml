@@ -1,0 +1,127 @@
+name: HR-PLATFORM-CI-PIPELINE
+
+on:
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  Test_Dbt_And_Python:
+
+    runs-on: ubuntu-latest
+
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+      SNOWFLAKE_DEV_DB: ${{ secrets.SNOWFLAKE_DEV_DB }}
+      SNOWFLAKE_PROD_DB: ${{ secrets.SNOWFLAKE_PROD_DB }}
+      SNOWFLAKE_DEV_SCHEMA: ${{ secrets.SNOWFLAKE_DEV_SCHEMA }}
+      SNOWFLAKE_PROD_SCHEMA: ${{ secrets.SNOWFLAKE_PROD_SCHEMA }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+
+      SOURCE_DB: ${{ secrets.SOURCE_DB }}
+      SOURCE_USER: ${{ secrets.SOURCE_USER }}
+      SOURCE_PASSWORD: ${{ secrets.SOURCE_PASSWORD }}
+      SOURCE_HOST: ${{ secrets.SOURCE_HOST }}
+      SOURCE_PORT: ${{ secrets.SOURCE_PORT }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Test DBT dev connection
+        working-directory: DBT/dbt_hr
+        run: |
+         dbt debug --target dev
+         
+      - name: Test DBT prod connection 
+        working-directory: DBT/dbt_hr
+        run: |
+         dbt debug --target prod 
+
+      - name: DBT Parse
+        working-directory: DBT/dbt_hr
+        run: dbt parse
+
+      - name: Run Unit Tests
+        run: python -m pytest tests/unit -v
+
+      - name: Run Integration Tests
+        run: python -m tests.intgeration.ingestion_pipline   
+
+
+  Test_Pipeline_Logic:
+
+    needs: Test_Dbt_And_Python
+
+    runs-on: ubuntu-latest
+
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_DEV_DB: ${{ secrets.SNOWFLAKE_DEV_DB }}
+      SNOWFLAKE_DEV_SCHEMA: ${{ secrets.SNOWFLAKE_DEV_SCHEMA }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir -r requirements.txt
+
+      - name: Install dbt dependencies
+        working-directory: DBT/dbt_hr
+        run: dbt deps
+
+      - name: Run Seeds
+        working-directory: DBT/dbt_hr
+        run: dbt seed --target dev
+
+      - name: Run Silver Models
+        working-directory: DBT/dbt_hr
+        run: dbt run --select silver intermediate --target dev
+
+      - name: Run Post Silver Tests
+        working-directory: DBT/dbt_hr
+        run: dbt test --select path:tests/post_silver_tests --target dev 
+
+      - name: Run Quarntine Models 
+        working-directory: DBT/dbt_hr 
+        run: dbt run --select quarntine --target dev 
+
+      - name: Run Snapshots
+        working-directory: DBT/dbt_hr
+        run: dbt snapshot --target dev
+
+      - name: Run Gold Models
+        working-directory: DBT/dbt_hr
+        run: dbt run --select gold --target dev
+
+      - name: Run Post Gold Tests
+        working-directory: DBT/dbt_hr
+        run: dbt test --select path:tests/post_gold_tests --target dev
+
+      - name: Run Metrics  
+        working-directory: DBT/dbt_hr 
+        run: dbt run --select metrics 
+      
