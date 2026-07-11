@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: bronze  
+    database: "{{ target.database }}" 
+    schema: bronze
+
+    tables:
+      - name: departments 
+      - name: employees 
+      - name: jobs 
+      - name: applications 
+      - name: seprations 
+      - name: offers 
+      - name: interviews
+      - name: payrolls 
+      - name: candidates 
+      - name: posts

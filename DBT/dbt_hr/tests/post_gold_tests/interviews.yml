@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: fact_interviews 
+
+    columns: 
+
+    - name: application_id 
+      tests: 
+        - relationships: 
+            to: ref('dim_applications')
+            field: application_id 
+    
+    - name: interviewer_id 
+      tests: 
+        - relationships: 
+            to: ref('dim_employees')
+            field: employee_id

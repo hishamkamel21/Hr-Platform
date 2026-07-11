@@ -1,0 +1,12 @@
+version: 2 
+
+models:
+  - name: dim_jobs 
+
+    columns: 
+
+      - name: department_id 
+        tests: 
+          - relationships: 
+              to: ref('dim_departments')
+              field: department_id 

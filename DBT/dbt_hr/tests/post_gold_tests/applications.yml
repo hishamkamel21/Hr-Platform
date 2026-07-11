@@ -1,0 +1,23 @@
+version: 2 
+
+models:
+  - name: dim_applications
+
+    columns:
+      - name: post_id 
+        tests:
+          - relationships:
+              to: ref('dim_posts')
+              field: post_id 
+
+      - name: job_id 
+        tests: 
+          - relationships: 
+              to: ref('dim_jobs')
+              field: job_id 
+
+      - name: candidate_id 
+        tests: 
+          - relationships: 
+              to: ref('dim_candidates')
+              field: candidate_id
