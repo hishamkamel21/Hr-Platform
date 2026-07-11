@@ -22,6 +22,7 @@ class DatabaseManager:
                 password=config["password"],
                 host=config["host"],
                 port=config["port"],
+                sslmode="require"
             )
 
         return self.postgres_conn
