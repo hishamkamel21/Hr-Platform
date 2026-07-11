@@ -1,0 +1,17 @@
+.env 
+
+DBT/logs 
+
+DBT/dbt_hr/logs 
+
+logs 
+
+added_package/__pycache__ 
+
+.venv 
+
+.pytest_cache 
+
+tests/intgeration/__pycache__ 
+
+tests/unit/__pycache__

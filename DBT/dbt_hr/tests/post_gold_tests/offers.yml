@@ -1,0 +1,26 @@
+version: 2 
+
+models:
+  - name: fact_offers 
+    
+    columns:
+      - name: application_id 
+        
+        tests:
+          - relationships:
+              to: ref('dim_applications')
+              field: application_id 
+      
+      - name: candidate_id 
+        
+        tests:
+          - relationships:
+              to: ref('dim_candidates')
+              field: candidate_id 
+      
+      - name: job_id 
+        
+        tests: 
+          - relationships:
+              to: ref('dim_jobs')
+              field: job_id 
