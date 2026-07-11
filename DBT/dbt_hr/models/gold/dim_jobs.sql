@@ -13,5 +13,5 @@ ingest_at ,
 dbt_valid_from ,
 dbt_valid_to ,
 True as is_current 
-from {{ref('jobs_history')}}
+from {{ref('job_history')}}
 where dbt_valid_to is null 
