@@ -15,7 +15,7 @@ with DAG(
     Run_Seeds = BashOperator(
         task_id="Run_Seeds",
         cwd=DBT_PROJECT_DIR,        
-        bash_command="dbt seed"
+        bash_command="dbt seed --target prod"
     )
 
     Run_Silver_Models = BashOperator(
