@@ -1,92 +1,104 @@
+-- CTE 1: Extract base hiring data with dbt incremental processing logic
 with base as ( 
     select 
-    offer_id ,
-    application_id ,
-    job_id ,
-    candidate_id ,
-    offered_salary as accepeted_salary , 
-    acceptance_date
+        offer_id,
+        application_id,
+        job_id,
+        candidate_id,
+        offered_salary as accepeted_salary, -- Maps accepted compensation
+        acceptance_date
 
-    from {{ref('fact_offers')}} 
-    where is_hired = 1  
+    from {{ ref('fact_offers') }} 
+    where is_hired = 1 -- Filter exclusively for successful hires 
 
+    -- dbt Incremental Materialization Hook: Filters for records updated since the last run
     {% if is_incremental() %}
-        and updated_at >
-        (
-            SELECT COALESCE(MAX(procssed_at), '1900-01-01')
-            FROM {{ this }}
+        and updated_at > (
+            select coalesce(max(procssed_at), '1900-01-01')
+            from {{ this }}
         )
     {% endif %}
 ),
+
+-- CTE 2: Join application metadata to track when the candidate originally applied
 detect_apply_date as ( 
     select 
-    h.* ,
-    a.application_timestamp 
+        h.*,
+        a.application_timestamp 
 
     from base h 
-    left join {{ref('dim_applications')}} a 
-    on h.application_id = a.application_id 
+    left join {{ ref('dim_applications') }} a 
+        on h.application_id = a.application_id 
 ),
+
+-- CTE 3: Join interview records (1:N relationship; expands rows per application)
 join_with_interviews as ( 
     select 
-    h.* ,
-    iv.interview_id ,
-    iv.score 
+        h.*,
+        iv.interview_id,
+        iv.score 
 
     from detect_apply_date h 
-    left join {{ref('fact_interviews')}} iv 
-    on h.application_id = iv.application_id
+    left join {{ ref('fact_interviews') }} iv 
+        on h.application_id = iv.application_id
 ),
+
+-- CTE 4: Aggregate to 1 row per application; compute interview metrics and consolidate offer attributes
 hire_metric as ( 
     select  
-    candidate_id ,
-    job_id , 
-    application_id ,
-    count(distinct interview_id) as total_interviews ,
-    avg(score) as avg_score ,
-    max(accepeted_salary) as accepeted_salary ,
-    max(acceptance_date) as accepeted_date ,
-    max(application_timestamp) as apply_date 
+        candidate_id,
+        job_id, 
+        application_id,
+        count(distinct interview_id) as total_interviews,
+        avg(score) as avg_score,
+        max(accepeted_salary) as accepeted_salary,
+        max(acceptance_date) as accepeted_date,
+        max(application_timestamp) as apply_date 
     
     from join_with_interviews
-    group by candidate_id , job_id , application_id
+    group by candidate_id, job_id, application_id
 ),
+
+-- CTE 5: Join job salary bands to calculate compensation metrics and pay compliance flags
 salary_metric as ( 
     select 
-    h.* , 
-     round(
-        (h.accepeted_salary - j.min_salary) / (j.max_salary - j.min_salary) ,
-        2
-    ) as accepeted_salary_position ,
+        h.*, 
+        -- Position within the job's salary range (0.00 = min, 1.00 = max)
+        round(
+            (h.accepeted_salary - j.min_salary) / nullif(j.max_salary - j.min_salary, 0),
+            2
+        ) as accepeted_salary_position,
 
-    j.max_salary - h.accepeted_salary as salary_gap ,
+        -- Headroom remaining before reaching the job maximum salary
+        j.max_salary - h.accepeted_salary as salary_gap,
 
-    case 
-      when h.accepeted_salary < j.min_salary 
-       then 'Under_Paid'
-      when h.accepeted_salary > j.max_salary 
-       then 'Over_Paid'
-      else 'Within_range' 
-    end as pay_flag , 
-    
+        -- Salary band compliance status relative to job market bounds
+        case 
+            when h.accepeted_salary < j.min_salary then 'Under_Paid'
+            when h.accepeted_salary > j.max_salary then 'Over_Paid'
+            else 'Within_range' 
+        end as pay_flag, 
 
-    round (
-        h.accepeted_salary / j.max_salary ,
-        2
-    ) as Offer_Competitiveness_Ratio
-
+        -- Ratio of accepted salary against the maximum budget allocated for the role
+        round(
+            h.accepeted_salary / nullif(j.max_salary, 0),
+            2
+        ) as Offer_Competitiveness_Ratio
 
     from hire_metric h 
-    left join {{ref('job_history')}} j 
-    on h.job_id = j.job_id 
-    and h.accepeted_date between j.dbt_valid_from and coalesce(j.dbt_valid_to,current_timestamp())
+    left join {{ ref('dim_jobs') }} j 
+        on h.job_id = j.job_id 
 )
+
+-- Final Output: Calculate recruitment cycle duration and append dbt execution timestamp
 select 
-* , 
-datediff(
-    day, apply_date, accepeted_date 
-) as time_to_hire ,
+    *, 
+    -- Total time elapsed (in days) from application date to offer acceptance date
+    datediff(
+        day, apply_date, accepeted_date 
+    ) as time_to_hire,
 
-current_timestamp() as procssed_at 
+    -- Metadata tracking field used for incremental processing on future runs
+    current_timestamp() as procssed_at 
 
-from salary_metric 
+from salary_metric
