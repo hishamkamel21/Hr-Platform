@@ -36,6 +36,12 @@ with DAG(
         bash_command="dbt test --select path:tests/post_silver_tests --target prod"
     )
 
+    Run_Snapshots = BashOperator(
+        task_id="Run_Snapshots",
+        cwd=DBT_PROJECT_DIR,
+        bash_command="dbt snapshot --target prod"
+    )
+
     Run_Gold_Models = BashOperator(
         task_id="Run_Gold_Models",
         cwd=DBT_PROJECT_DIR,
