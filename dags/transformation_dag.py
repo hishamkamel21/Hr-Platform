@@ -60,4 +60,4 @@ with DAG(
         bash_command="dbt run --select metrics --target prod"
     )
 
-    Run_Seeds >> Run_Silver_Models >> Run_Quarantine_Models >> Run_Post_Silver_Test >> Run_Gold_Models >> Run_Post_Gold_Tests >> Run_Metrics
+    Run_Seeds >> Run_Silver_Models >> Run_Quarantine_Models >> Run_Post_Silver_Test >> Run_Snapshots >> Run_Gold_Models >> Run_Post_Gold_Tests >> Run_Metrics
