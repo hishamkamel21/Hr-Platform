@@ -15,3 +15,5 @@ added_package/__pycache__
 tests/intgeration/__pycache__ 
 
 tests/unit/__pycache__ 
+
+DBT/dbt_hr/.user.yml

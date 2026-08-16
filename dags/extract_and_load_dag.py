@@ -14,6 +14,7 @@ from added_package.Load import Load
 from airflow.sdk import dag, task
 
 
+
 def extract_and_load(watermark_dict: dict, table: str) -> None:
     """
     Core ETL pipeline helper function for a single database table.
